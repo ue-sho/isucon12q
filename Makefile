@@ -4,6 +4,8 @@ DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isuports
 
+SERVICE_NAME:=isuports.service
+
 MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 
 NGX_LOG:=/var/log/nginx/access.log
@@ -33,7 +35,7 @@ build:
 .PHONY: restart
 restart:
 	sudo systemctl daemon-reload
-	sudo systemctl restart isuports.service
+	sudo systemctl restart SERVICE_NAME
 
 .PHONY: dev
 dev: build
@@ -48,7 +50,7 @@ bench: before build restart log
 
 .PHONY: log
 log:
-	sudo journalctl -u isuports.service -n10 -f
+	sudo journalctl -u SERVICE_NAME -n10 -f
 
 .PHONY: maji
 bench: commit before build restart
@@ -87,20 +89,23 @@ slow-off:
 
 .PHONY: setup
 setup:
+	sudo apt-get update
+	sudo apt-get install htop unzip jq
+
 	# pt-query-digest
-	wget https://www.percona.com/downloads/percona-toolkit/2.2.17/deb/percona-toolkit_2.2.17-1.tar.gz
-	tar xf percona-toolkit_2.2.17-1.tar.gz
-	cd percona-toolkit-2.2.17; perl Makefile.PL && make && make install
+	wget https://github.com/percona/percona-toolkit/archive/refs/tags/v3.5.5.tar.gz
+	tar zxvf v3.5.5.tar.gz
+	sudo install ./percona-toolkit-3.5.5/bin/pt-query-digest /usr/local/bin
 	# alp
 	wget https://github.com/tkuchiki/alp/releases/download/v1.0.3/alp_linux_amd64.zip
-	sudo apt-get install unzip
 	unzip alp_linux_amd64.zip
 	sudo mv alp /usr/local/bin/
 	# slack_notify
 	wget https://github.com/catatsuy/notify_slack/releases/download/v0.4.14/notify_slack-linux-amd64.tar.gz
 	tar zxvf notify_slack-linux-amd64.tar.gz
+	mv notify_slack /usr/local/bin/
 
-	rm -rf percona-toolkit_2.2.17-1.tar.gz percona-toolkit-2.2.17 alp_linux_amd64.zip notify_slack-linux-amd64.tar.gz
+	rm -rf percona-toolkit_2.2.17-1.tar.gz percona-toolkit-2.2.17 alp_linux_amd64.zip notify_slack-linux-amd64.tar.gz LICENSE README.md
 
 .SILENT: mspec
 mspec:
