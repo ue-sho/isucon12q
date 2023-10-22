@@ -103,9 +103,9 @@ setup:
 	# slack_notify
 	wget https://github.com/catatsuy/notify_slack/releases/download/v0.4.14/notify_slack-linux-amd64.tar.gz
 	tar zxvf notify_slack-linux-amd64.tar.gz
-	mv notify_slack /usr/local/bin/
+	sudo mv notify_slack /usr/local/bin/
 
-	rm -rf percona-toolkit_2.2.17-1.tar.gz percona-toolkit-2.2.17 alp_linux_amd64.zip notify_slack-linux-amd64.tar.gz LICENSE README.md
+	rm -rf percona-toolkit_2.2.17-1.tar.gz percona-toolkit-2.2.17 alp_linux_amd64.zip notify_slack-linux-amd64.tar.gz LICENSE README.md CHANGELOG.md
 
 .SILENT: mspec
 mspec:
