@@ -11,20 +11,13 @@ MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 NGX_LOG:=/var/log/nginx/access.log
 MYSQL_LOG:=/var/log/mysql/slow.log
 
-SLACKCAT:=slackcat --tee --channel general
-SLACKRAW:=slackcat --channel general
-
 PROJECT_ROOT:=/home/isucon
 BUILD_DIR:=/home/isucon/isuumo/webapp/node
 BIN_NAME:=isuumo
 
-CA:=-o /dev/null -s -w "%{http_code}\n"
+ALP_MATCHING_GROUPS:=--matching-groups="/api/player/player/[0-9a-z]+,/api/organizer/competition/[0-9a-z]+/finish,/api/organizer/competition/[0-9a-z]+/disqualified,/api/player/competition/[0-9]+/,/api/organizer/player/[0-9a-z]+/disqualified,/api/player/competition/[0-9a-z]+/ranking,/api/organizer/competition/[0-9a-z]+/score"
 
 all: build
-
-deps:
-	cd $(BUILD_DIR); \
-	make deps
 
 .PHONY: build
 build:
@@ -35,25 +28,17 @@ build:
 .PHONY: restart
 restart:
 	sudo systemctl daemon-reload
-	sudo systemctl restart SERVICE_NAME
-
-.PHONY: dev
-dev: build
-	cd $(BUILD_DIR); \
-	./$(BIN_NAME)
-
-.PHONY: bench-dev
-bench-dev: before slow-on dev
+	sudo systemctl restart $(SERVICE_NAME)
 
 .PHONY: bench
-bench: before build restart log
+bench: before restart log
 
 .PHONY: log
 log:
-	sudo journalctl -u SERVICE_NAME -n10 -f
+	sudo journalctl -u $(SERVICE_NAME) -n10 -f
 
 .PHONY: maji
-bench: commit before build restart
+bench: before restart
 
 .PHONY: anali
 anali: slow alp
@@ -71,21 +56,11 @@ before:
 
 .PHONY: slow
 slow:
-	sudo pt-query-digest $(MYSQL_LOG) | $(SLACKCAT)
+	sudo pt-query-digest $(MYSQL_LOG) | notify_slack
 
 .PHONY: alp
 alp:
-	sudo cat $(NGX_LOG)  | alp ltsv --sort=sum | $(SLACKCAT)
-
-.PHONY: slow-on
-slow-on:
-	sudo mysql -e "set global slow_query_log_file = '$(MYSQL_LOG)'; set global long_query_time = 0; set global slow_query_log = ON;"
-	# sudo $(MYSQL_CMD) -e "set global slow_query_log_file = '$(MYSQL_LOG)'; set global long_query_time = 0; set global slow_query_log = ON;"
-
-.PHONY: slow-off
-slow-off:
-	sudo mysql -e "set global slow_query_log = OFF;"
-	# sudo $(MYSQL_CMD) -e "set global slow_query_log = OFF;"
+	sudo cat $(NGX_LOG)  | alp --sort sum -r ltsv $(ALP_MATCHING_GROUPS) | notify_slack
 
 .PHONY: setup
 setup:
@@ -109,4 +84,4 @@ setup:
 
 .SILENT: mspec
 mspec:
-	(grep processor /proc/cpuinfo; free -m) | $(SLACKCAT)
+	(grep processor /proc/cpuinfo; free -m) | notify_slack
