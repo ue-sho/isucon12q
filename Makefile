@@ -105,7 +105,7 @@ setup:
 	tar zxvf notify_slack-linux-amd64.tar.gz
 	sudo mv notify_slack /usr/local/bin/
 
-	rm -rf percona-toolkit_2.2.17-1.tar.gz percona-toolkit-2.2.17 alp_linux_amd64.zip notify_slack-linux-amd64.tar.gz LICENSE README.md CHANGELOG.md
+	rm -rf v3.5.5.tar.gz percona-toolkit-3.5.5 alp_linux_amd64.zip notify_slack-linux-amd64.tar.gz LICENSE README.md CHANGELOG.md
 
 .SILENT: mspec
 mspec:
