@@ -31,7 +31,7 @@ restart:
 	sudo systemctl restart $(SERVICE_NAME)
 
 .PHONY: bench
-bench: before restart log
+bench: before log
 
 .PHONY: log
 log:
@@ -51,16 +51,20 @@ before:
 	sudo mv -f $(NGX_LOG) ~/logs/$(when)/ ;
 	sudo touch $(MYSQL_LOG);
 	sudo mv -f $(MYSQL_LOG) ~/logs/$(when)/ ;
-	sudo systemctl restart nginx
+	sudo cp -f $(PROJECT_ROOT)/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
+	sudo co -f $(PROJECT_ROOT)/nginx/nginx.conf /etc/nginx/nginx.conf
+	sudo systemctl restart nginxdd
 	sudo systemctl restart mysql
 
 .PHONY: slow
 slow:
-	sudo pt-query-digest $(MYSQL_LOG) | notify_slack
+	# sudo pt-query-digest $(MYSQL_LOG) | notify_slack
+	sudo pt-query-digest $(MYSQL_LOG)
 
 .PHONY: alp
 alp:
-	sudo cat $(NGX_LOG)  | alp --sort sum -r ltsv $(ALP_MATCHING_GROUPS) | notify_slack
+	# sudo cat $(NGX_LOG)  | alp --sort sum -r ltsv $(ALP_MATCHING_GROUPS) | notify_slack
+	sudo cat $(NGX_LOG)  | alp --sort sum -r ltsv $(ALP_MATCHING_GROUPS)
 
 .PHONY: setup
 setup:
@@ -84,4 +88,6 @@ setup:
 
 .SILENT: mspec
 mspec:
-	(grep processor /proc/cpuinfo; free -m) | notify_slack
+	# (grep processor /proc/cpuinfo; free -m) | notify_slack
+	(grep processor /proc/cpuinfo; free -m)
+
