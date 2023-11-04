@@ -45,7 +45,7 @@ before:
 	sudo mv -f $(MYSQL_LOG) ~/logs/$(when)/ ;
 	sudo cp -rf $(PROJECT_ROOT)/mysql /etc/mysql
 	sudo cp -rf $(PROJECT_ROOT)/nginx /etc/nginx
-	sudo systemctl restart nginxd
+	sudo systemctl restart nginx
 	sudo systemctl restart mysql
 
 .PHONY: slow
