@@ -43,8 +43,8 @@ before:
 	sudo mv -f $(NGX_LOG) ~/logs/$(when)/ ;
 	sudo touch $(MYSQL_LOG);
 	sudo mv -f $(MYSQL_LOG) ~/logs/$(when)/ ;
-	sudo cp -f $(PROJECT_ROOT)/mysql /etc/mysql
-	sudo cp -f $(PROJECT_ROOT)/nginx /etc/nginx
+	sudo cp -rf $(PROJECT_ROOT)/mysql /etc/mysql
+	sudo cp -rf $(PROJECT_ROOT)/nginx /etc/nginx
 	sudo systemctl restart nginxd
 	sudo systemctl restart mysql
 
