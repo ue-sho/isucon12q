@@ -17,14 +17,6 @@ BIN_NAME:=isuumo
 
 ALP_MATCHING_GROUPS:=--matching-groups="/api/player/player/[0-9a-z]+,/api/organizer/competition/[0-9a-z]+/finish,/api/organizer/competition/[0-9a-z]+/disqualified,/api/player/competition/[0-9]+/,/api/organizer/player/[0-9a-z]+/disqualified,/api/player/competition/[0-9a-z]+/ranking,/api/organizer/competition/[0-9a-z]+/score"
 
-all: build
-
-.PHONY: build
-build:
-	cd $(BUILD_DIR); \
-	make
-	#TODO
-
 .PHONY: restart
 restart:
 	sudo systemctl daemon-reload
@@ -51,19 +43,17 @@ before:
 	sudo mv -f $(NGX_LOG) ~/logs/$(when)/ ;
 	sudo touch $(MYSQL_LOG);
 	sudo mv -f $(MYSQL_LOG) ~/logs/$(when)/ ;
-	sudo cp -f $(PROJECT_ROOT)/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
-	sudo co -f $(PROJECT_ROOT)/nginx/nginx.conf /etc/nginx/nginx.conf
-	sudo systemctl restart nginxdd
+	sudo cp -f $(PROJECT_ROOT)/mysql /etc/mysql
+	sudo cp -f $(PROJECT_ROOT)/nginx /etc/nginx
+	sudo systemctl restart nginxd
 	sudo systemctl restart mysql
 
 .PHONY: slow
 slow:
-	# sudo pt-query-digest $(MYSQL_LOG) | notify_slack
 	sudo pt-query-digest $(MYSQL_LOG)
 
 .PHONY: alp
 alp:
-	# sudo cat $(NGX_LOG)  | alp --sort sum -r ltsv $(ALP_MATCHING_GROUPS) | notify_slack
 	sudo cat $(NGX_LOG)  | alp --sort sum -r ltsv $(ALP_MATCHING_GROUPS)
 
 .PHONY: setup
@@ -88,6 +78,5 @@ setup:
 
 .SILENT: mspec
 mspec:
-	# (grep processor /proc/cpuinfo; free -m) | notify_slack
 	(grep processor /proc/cpuinfo; free -m)
 
