@@ -1373,8 +1373,7 @@ app.get(
           const pss = await tenantDB.all<(PlayerScoreRow & DisplayName)[]>(
             'SELECT player_score.*, player.display_name FROM player_score JOIN player ON player.id = player_score.player_id WHERE player_score.tenant_id = ? AND competition_id = ? ORDER BY row_num DESC',
             tenant.id,
-            competition.id,
-            rankAfter
+            competition.id
           )
 
           const scoredPlayerSet: { [player_id: string]: number } = {}
