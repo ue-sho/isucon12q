@@ -1375,7 +1375,7 @@ app.get(
 
           const scoredPlayerSet: { [player_id: string]: number } = {}
           const tmpRanks: (CompetitionRank & WithRowNum)[] = []
-          for (let i = 1; i <= 100; i++) {
+          for (let i = 0; i < 100; i++) {
             // player_scoreが同一player_id内ではrow_numの降順でソートされているので
             // 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
             if (scoredPlayerSet[pss[i].player_id]) {
@@ -1388,7 +1388,7 @@ app.get(
             }
 
             tmpRanks.push({
-              rank: rankAfter + i,
+              rank: rankAfter + i + 1,
               score: pss[i].score,
               player_id: p.id,
               player_display_name: p.display_name,
