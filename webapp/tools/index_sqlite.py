@@ -12,6 +12,7 @@ def tenant_db_path(id: int) -> str:
 def connect_to_tenant_db(id: int) -> Engine:
     """テナントDBに接続する"""
     path = tenant_db_path(id)
+    print(path)
     engine = create_engine(f"sqlite:///{path}")
     return engine
 
@@ -20,6 +21,6 @@ for i in range(1, 101):
     tenant_db = connect_to_tenant_db(i)
     tenant_db.execute("CREATE INDEX IF NOT EXISTS `tenant_id_idx` ON `competition` (`tenant_id`)")
     tenant_db.execute("CREATE INDEX IF NOT EXISTS `tenant_id_idx` ON `player` (`tenant_id`)")
-    tenant_db.execute("CREATE INDEX IF NOT EXISTS `score_idx` ON `player` (`tenant_id`, `competition_id`, `player_id`)")
+    tenant_db.execute("CREATE INDEX IF NOT EXISTS `score_idx` ON `player_score` (`tenant_id`, `competition_id`, `player_id`)")
     tenant_db.close()
 
