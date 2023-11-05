@@ -13,7 +13,7 @@ import { open, Database } from 'sqlite'
 import { openSync, closeSync } from 'fs'
 import fsExt from 'fs-ext'
 import { parse } from 'csv-parse/sync'
-import crypto from 'crypto'
+import { ulid } from 'ulid'
 
 import { useSqliteTraceHook } from './sqltrace'
 
@@ -117,7 +117,7 @@ async function dispenseID_origin(): Promise<string> {
 
 // システム全体で一意なIDを生成する
 async function dispenseID(): Promise<string> {
-  return crypto.randomUUID()
+  return ulid()
 }
 
 // カスタムエラーハンドラにステータスコード拾ってもらうエラー型
