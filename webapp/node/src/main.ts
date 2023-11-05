@@ -1258,39 +1258,70 @@ app.get(
           is_disqualified: !!p.is_disqualified,
         }
 
-        const competitions = await tenantDB.all<CompetitionRow[]>('SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC', viewer.tenantId)
+        const competitionScores = await tenantDB.all<PlayerScoreRow[]>(
+          'SELECT ps.*, c.title as competition_title ' +
+          'FROM player_score as ps ' +
+          'INNER JOIN competition as c ON c.id = ps.competition_id ' +
+          'WHERE ps.tenant_id = ? AND ps.player_id = ? ' +
+          'ORDER BY ps.row_num DESC',
+          viewer.tenantId,
+          playerId
+        );
 
-        const pss: PlayerScoreRow[] = []
-
-        // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
         const unlock = await flockByTenantID(viewer.tenantId)
         try {
-          for (const comp of competitions) {
-            const ps = await tenantDB.get<PlayerScoreRow>(
-              // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-              'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1',
-              viewer.tenantId,
-              comp.id,
-              p.id
-            )
-            if (!ps) {
-              // 行がない = スコアが記録されてない
-              continue
+          // 重複を取り除き、最新のスコアのみを保持
+          const uniqueCompetitionScores = {};
+          for (const cs of competitionScores) {
+            // 最も大きいrow_numを持つスコアのみを保持
+            const existing = uniqueCompetitionScores[cs.competition_id];
+            if (!existing || existing.row_num < cs.row_num) {
+              uniqueCompetitionScores[cs.competition_id] = cs;
             }
-
-            pss.push(ps)
           }
 
-          for (const ps of pss) {
-            const comp = await retrieveCompetition(tenantDB, ps.competition_id)
-            if (!comp) {
-              throw new Error('error retrieveCompetition')
-            }
+          // psdsに変換
+          for (const compId in uniqueCompetitionScores) {
+            const cs = uniqueCompetitionScores[compId];
             psds.push({
-              competition_title: comp?.title,
-              score: ps.score,
-            })
+              competition_title: cs.competition_title,
+              score: cs.score,
+            });
           }
+
+        // const competitions = await tenantDB.all<CompetitionRow[]>('SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC', viewer.tenantId)
+
+        // const pss: PlayerScoreRow[] = []
+
+        // // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
+        // const unlock = await flockByTenantID(viewer.tenantId)
+        // try {
+        //   for (const comp of competitions) {
+        //     const ps = await tenantDB.get<PlayerScoreRow>(
+        //       // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
+        //       'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1',
+        //       viewer.tenantId,
+        //       comp.id,
+        //       p.id
+        //     )
+        //     if (!ps) {
+        //       // 行がない = スコアが記録されてない
+        //       continue
+        //     }
+
+        //     pss.push(ps)
+        //   }
+
+        //   for (const ps of pss) {
+        //     const comp = await retrieveCompetition(tenantDB, ps.competition_id)
+        //     if (!comp) {
+        //       throw new Error('error retrieveCompetition')
+        //     }
+        //     psds.push({
+        //       competition_title: comp?.title,
+        //       score: ps.score,
+        //     })
+        //   }
         } finally {
           unlock()
         }
