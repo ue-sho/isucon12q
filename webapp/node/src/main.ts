@@ -1384,6 +1384,7 @@ app.get(
             competition.id,
             rankAfter
           )
+          console.log(pss)
 
           const scoredPlayerSet: { [player_id: string]: number } = {}
           const tmpRanks: (CompetitionRank & WithRowNum)[] = []
