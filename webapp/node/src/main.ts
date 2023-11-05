@@ -1268,26 +1268,24 @@ app.get(
           playerId
         );
 
-        const unlock = await flockByTenantID(viewer.tenantId)
-        try {
-          // 重複を取り除き、最新のスコアのみを保持
-          const uniqueCompetitionScores = {};
-          for (const cs of competitionScores) {
-            // 最も大きいrow_numを持つスコアのみを保持
-            const existing = uniqueCompetitionScores[cs.competition_id];
-            if (!existing || existing.row_num < cs.row_num) {
-              uniqueCompetitionScores[cs.competition_id] = cs;
-            }
+        // 重複を取り除き、最新のスコアのみを保持
+        const uniqueCompetitionScores = {};
+        for (const cs of competitionScores) {
+          // 最も大きいrow_numを持つスコアのみを保持
+          const existing = uniqueCompetitionScores[cs.competition_id];
+          if (!existing || existing.row_num < cs.row_num) {
+            uniqueCompetitionScores[cs.competition_id] = cs;
           }
+        }
 
-          // psdsに変換
-          for (const compId in uniqueCompetitionScores) {
-            const cs = uniqueCompetitionScores[compId];
-            psds.push({
-              competition_title: cs.competition_title,
-              score: cs.score,
-            });
-          }
+        // psdsに変換
+        for (const compId in uniqueCompetitionScores) {
+          const cs = uniqueCompetitionScores[compId];
+          psds.push({
+            competition_title: cs.competition_title,
+            score: cs.score,
+          });
+        }
 
         // const competitions = await tenantDB.all<CompetitionRow[]>('SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC', viewer.tenantId)
 
@@ -1322,9 +1320,9 @@ app.get(
         //       score: ps.score,
         //     })
         //   }
-        } finally {
-          unlock()
-        }
+        // } finally {
+        //   unlock()
+        // }
       } finally {
         tenantDB.close()
       }
