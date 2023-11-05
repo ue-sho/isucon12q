@@ -36,10 +36,14 @@ async function connectToTenantDB(id: number): Promise<Database> {
     return db
 }
 
-for (let i = 1; i <= 100; i++) {
-    const tenantDB = await connectToTenantDB(i)
-    tenantDB.run('CREATE INDEX IF NOT EXISTS `tenant_id_idx` ON `competition` (`tenant_id`)')
-    tenantDB.run('CREATE INDEX IF NOT EXISTS `tenant_id_idx` ON `player` (`tenant_id`)')
-    tenantDB.run('CREATE INDEX IF NOT EXISTS `score_idx` ON `player` (`tenant_id`, `competition_id`, `player_id`)')
-    tenantDB.close()
+async function main() {
+    for (let i = 1; i <= 100; i++) {
+        const tenantDB = await connectToTenantDB(i)
+        tenantDB.run('CREATE INDEX IF NOT EXISTS `tenant_id_idx` ON `competition` (`tenant_id`)')
+        tenantDB.run('CREATE INDEX IF NOT EXISTS `tenant_id_idx` ON `player` (`tenant_id`)')
+        tenantDB.run('CREATE INDEX IF NOT EXISTS `score_idx` ON `player` (`tenant_id`, `competition_id`, `player_id`)')
+        tenantDB.close()
+    }
 }
+
+main()
