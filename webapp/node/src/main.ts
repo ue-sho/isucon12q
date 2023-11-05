@@ -13,6 +13,7 @@ import { open, Database } from 'sqlite'
 import { openSync, closeSync } from 'fs'
 import fsExt from 'fs-ext'
 import { parse } from 'csv-parse/sync'
+import crypto from 'crypto'
 
 import { useSqliteTraceHook } from './sqltrace'
 
@@ -91,7 +92,7 @@ async function createTenantDB(id: number): Promise<Error | undefined> {
 }
 
 // システム全体で一意なIDを生成する
-async function dispenseID(): Promise<string> {
+async function dispenseID_origin(): Promise<string> {
   let id = 0
   let lastErr: any
   for (const _ of Array(100)) {
@@ -112,6 +113,11 @@ async function dispenseID(): Promise<string> {
   }
 
   throw new Error(`error REPLACE INTO id_generator: ${lastErr.toString()}`)
+}
+
+// システム全体で一意なIDを生成する
+async function dispenseID(): Promise<string> {
+  return crypto.randomUUID()
 }
 
 // カスタムエラーハンドラにステータスコード拾ってもらうエラー型

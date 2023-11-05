@@ -15,7 +15,7 @@ PROJECT_ROOT:=/home/isucon
 BUILD_DIR:=/home/isucon/isuumo/webapp/node
 BIN_NAME:=isuumo
 
-ALP_MATCHING_GROUPS:=--matching-groups="/api/player/player/[0-9a-z]+,/api/organizer/competition/[0-9a-z]+/finish,/api/organizer/competition/[0-9a-z]+/disqualified,/api/player/competition/[0-9]+/,/api/organizer/player/[0-9a-z]+/disqualified,/api/player/competition/[0-9a-z]+/ranking,/api/organizer/competition/[0-9a-z]+/score"
+ALP_MATCHING_GROUPS:=-matching-groups="/api/player/player/[0-9a-z]+,/api/organizer/competition/([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/finish,/api/organizer/competition/([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/disqualified,/api/player/competition/[0-9]+/,/api/organizer/player/[0-9a-z]+/disqualified,/api/player/competition/([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/ranking,/api/organizer/competition/([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/score"
 
 .PHONY: restart
 restart:
