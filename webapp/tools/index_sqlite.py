@@ -5,7 +5,7 @@ from sqlalchemy.engine import Engine
 
 def tenant_db_path(id: int) -> str:
     """テナントDBのパスを返す"""
-    tenant_db_dir = os.getenv("ISUCON_TENANT_DB_DIR", "../tenant_db")
+    tenant_db_dir = os.getenv("ISUCON_TENANT_DB_DIR", "../../initial_data")
     return tenant_db_dir + f"/{id}.db"
 
 
