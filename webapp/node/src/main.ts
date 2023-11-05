@@ -279,15 +279,7 @@ interface PlayerScoreRow {
   updated_at: number
 }
 
-interface PlayerScoreRowWithDisplayName {
-  tenant_id: number
-  id: string
-  player_id: string
-  competition_id: string
-  score: number
-  row_num: number
-  created_at: number
-  updated_at: number
+interface DisplayName {
   display_name: string
 }
 
@@ -1378,13 +1370,12 @@ app.get(
         // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
         const unlock = await flockByTenantID(tenant.id)
         try {
-          const pss = await tenantDB.all<PlayerScoreRowWithDisplayName[]>(
+          const pss = await tenantDB.all<(PlayerScoreRow & DisplayName)[]>(
             'SELECT player_score.*, player.display_name FROM player_score JOIN player ON player.id = player_score.player_id WHERE player_score.tenant_id = ? AND competition_id = ? ORDER BY row_num DESC',
             tenant.id,
             competition.id,
             rankAfter
           )
-          console.log(pss)
 
           const scoredPlayerSet: { [player_id: string]: number } = {}
           const tmpRanks: (CompetitionRank & WithRowNum)[] = []
