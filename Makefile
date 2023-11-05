@@ -15,7 +15,7 @@ PROJECT_ROOT:=/home/isucon
 BUILD_DIR:=/home/isucon/isuumo/webapp/node
 BIN_NAME:=isuumo
 
-ALP_MATCHING_GROUPS:=--matching-groups="/api/player/player/[0-9a-zA-Z]+,/api/organizer/competition/[0-9a-zA-Z]+/finish,/api/organizer/competition/[0-9a-zA-Z]+/disqualified,/api/player/competition/[0-9]+,/api/organizer/player/[0-9a-zA-Z]+/disqualified,/api/player/competition/[0-9a-zA-Z]+/ranking,/api/organizer/competition/[0-9a-zA-Z]+/score"
+ALP_MATCHING_GROUPS:=--matching-groups="/api/player/player/[0-9a-zA-Z]+,/api/organizer/competition/[0-9a-zA-Z]+/finish,/api/organizer/competition/[0-9a-zA-Z]+/disqualified,/api/player/competition/[0-9]+/,/api/organizer/player/[0-9a-zA-Z]+/disqualified,/api/player/competition/[0-9a-zA-Z]+/ranking,/api/organizer/competition/[0-9a-zA-Z]+/score"
 
 
 .PHONY: restart

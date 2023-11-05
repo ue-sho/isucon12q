@@ -1358,7 +1358,7 @@ app.get(
         )
 
         const { rank_after: rankAfterStr } = req.query
-        let rankAfter: number
+        let rankAfter = 0
         if (rankAfterStr) {
           rankAfter = parseInt(rankAfterStr.toString(), 10)
         }
@@ -1367,51 +1367,34 @@ app.get(
         const unlock = await flockByTenantID(tenant.id)
         try {
           const pss = await tenantDB.all<PlayerScoreRow[]>(
-            'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY row_num DESC',
+            'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY row_num DESC, row_num ASC LIMIT 100 OFFSET ?',
             tenant.id,
-            competition.id
+            competition.id,
+            rankAfter
           )
 
           const scoredPlayerSet: { [player_id: string]: number } = {}
           const tmpRanks: (CompetitionRank & WithRowNum)[] = []
-          for (const ps of pss) {
+          for (let i = 1; i <= 100; i++) {
             // player_scoreが同一player_id内ではrow_numの降順でソートされているので
             // 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
-            if (scoredPlayerSet[ps.player_id]) {
+            if (scoredPlayerSet[pss[i].player_id]) {
               continue
             }
-            scoredPlayerSet[ps.player_id] = 1
-            const p = await retrievePlayer(tenantDB, ps.player_id)
+            scoredPlayerSet[pss[i].player_id] = 1
+            const p = await retrievePlayer(tenantDB, pss[i].player_id)
             if (!p) {
               throw new Error('error retrievePlayer')
             }
 
             tmpRanks.push({
-              rank: 0,
-              score: ps.score,
+              rank: rankAfter + i,
+              score: pss[i].score,
               player_id: p.id,
               player_display_name: p.display_name,
-              row_num: ps.row_num,
+              row_num: pss[i].row_num,
             })
           }
-
-          tmpRanks.sort((a, b) => {
-            if (a.score === b.score) {
-              return a.row_num < b.row_num ? -1 : 1
-            }
-            return a.score > b.score ? -1 : 1
-          })
-
-          tmpRanks.forEach((rank, index) => {
-            if (index < rankAfter) return
-            if (ranks.length >= 100) return
-            ranks.push({
-              rank: index + 1,
-              score: rank.score,
-              player_id: rank.player_id,
-              player_display_name: rank.player_display_name,
-            })
-          })
         } finally {
           unlock()
         }
