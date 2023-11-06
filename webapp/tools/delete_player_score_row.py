@@ -40,14 +40,12 @@ CREATE TABLE player_score2 (
 )
 """)
 
-    tenant_db.begin()
-    for player_score in last_score_dict.values():
-        tenant_db.execute("""
-INSERT INTO player_score2 (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-""", (player_score["id"], player_score["tenant_id"], player_score["player_id"], player_score["competition_id"], player_score["score"], player_score["row_num"], player_score["created_at"], player_score["updated_at"]))
-
-    tenant_db.commit()
+    with tenant_db.connect() as conn:
+        for player_score in last_score_dict.values():
+            conn.execute("""
+    INSERT INTO player_score2 (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (player_score["id"], player_score["tenant_id"], player_score["player_id"], player_score["competition_id"], player_score["score"], player_score["row_num"], player_score["created_at"], player_score["updated_at"]))
 
 
 def main():
