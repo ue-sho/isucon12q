@@ -12,7 +12,6 @@ def tenant_db_path(id: int) -> str:
 def connect_to_tenant_db(id: int) -> Engine:
     """テナントDBに接続する"""
     path = tenant_db_path(id)
-    print(path)
     engine = create_engine(f"sqlite:///{path}")
     return engine
 
@@ -44,7 +43,7 @@ CREATE TABLE player_score2 (
     tenant_db.begin()
     for player_score in last_score_dict.values():
         tenant_db.execute("""
-INSERT INTO player_score (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at)
+INSERT INTO player_score2 (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 """, (player_score["id"], player_score["tenant_id"], player_score["player_id"], player_score["competition_id"], player_score["score"], player_score["row_num"], player_score["created_at"], player_score["updated_at"]))
 
