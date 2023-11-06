@@ -625,7 +625,7 @@ app.get(
   '/api/admin/tenants/billing',
   wrap(async (req: Request, res: Response) => {
     try {
-      if (req.hostname !== getEnv('ISUCON_ADMIN_HOSTNAME', 'admin.t.isucon.dev')) {
+      if (req.hostname !== getEnv('ISUCON_ADMIN_HOSTNAME', 'admin.t.isucon.local')) {
         throw new ErrorWithStatus(404, `invalid hostname ${req.hostname}`)
       }
 
