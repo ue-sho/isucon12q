@@ -14,7 +14,6 @@ import { openSync, closeSync } from 'fs'
 import fsExt from 'fs-ext'
 import { parse } from 'csv-parse/sync'
 import { ulid } from 'ulid'
-
 import { useSqliteTraceHook } from './sqltrace'
 
 const exec = util.promisify(childProcess.exec)
@@ -252,6 +251,10 @@ interface CompetitionRow {
   finished_at: number | null
   created_at: number
   updated_at: number
+}
+
+interface CompetitionTitle{
+  title: string
 }
 
 interface VisitHistorySummaryRow {
@@ -622,7 +625,7 @@ app.get(
   '/api/admin/tenants/billing',
   wrap(async (req: Request, res: Response) => {
     try {
-      if (req.hostname !== getEnv('ISUCON_ADMIN_HOSTNAME', 'admin.t.isucon.local')) {
+      if (req.hostname !== getEnv('ISUCON_ADMIN_HOSTNAME', 'admin.t.isucon.dev')) {
         throw new ErrorWithStatus(404, `invalid hostname ${req.hostname}`)
       }
 
@@ -1002,6 +1005,7 @@ app.post(
 
       const playerScoreRows: PlayerScoreRow[] = []
       const tenantDB = await connectToTenantDB(viewer.tenantId)
+      let rowNum = 0
       try {
         const competition = await retrieveCompetition(tenantDB, competitionId)
         if (!competition) {
@@ -1037,7 +1041,7 @@ app.post(
 
         // DELETEしたタイミングで参照が来ると空っぽのランキングになるのでロックする
         const unlock = await flockByTenantID(viewer.tenantId)
-        let rowNum = 0
+        const playerScores = {}
         try {
           for (const record of records) {
             rowNum++
@@ -1047,15 +1051,26 @@ app.post(
             }
 
             const { player_id, score: scoreStr } = record
+            const score = parseInt(scoreStr, 10)
+            if (isNaN(score)) {
+              throw new ErrorWithStatus(400, `error parseInt: scoreStr=${scoreStr}`)
+            }
+
+            if (playerScores[player_id] === undefined) {
+              playerScores[player_id] = { score, rowNum }
+            } else if(playerScores[player_id].score < score) {
+              playerScores[player_id] = { score, rowNum }
+            } else {
+              continue
+            }
+          }
+
+          for (const player_id of Object.keys(playerScores)) {
+
             const p = await retrievePlayer(tenantDB, player_id)
             if (!p) {
               // 存在しない参加者が含まれている
               throw new ErrorWithStatus(400, `player not found: ${player_id}`)
-            }
-
-            const score = parseInt(scoreStr, 10)
-            if (isNaN(score)) {
-              throw new ErrorWithStatus(400, `error parseInt: scoreStr=${scoreStr}`)
             }
 
             const id = await dispenseID()
@@ -1066,8 +1081,8 @@ app.post(
               tenant_id: viewer.tenantId,
               player_id,
               competition_id: competitionId,
-              score: score,
-              row_num: rowNum,
+              score: playerScores[player_id].score,
+              row_num: playerScores[player_id].rowNum,
               created_at: now,
               updated_at: now,
             })
@@ -1107,7 +1122,7 @@ app.post(
       }
 
       const data: ScoreResult = {
-        rows: playerScoreRows.length,
+        rows: rowNum,
       }
 
       res.status(200).json({
@@ -1258,71 +1273,38 @@ app.get(
           is_disqualified: !!p.is_disqualified,
         }
 
-        const competitionScores = await tenantDB.all<PlayerScoreRow[]>(
-          'SELECT ps.*, c.title as competition_title ' +
-          'FROM player_score as ps ' +
-          'INNER JOIN competition as c ON c.id = ps.competition_id ' +
-          'WHERE ps.tenant_id = ? AND ps.player_id = ? ' +
-          'ORDER BY ps.row_num DESC',
-          viewer.tenantId,
-          playerId
-        );
+        const competitions = await tenantDB.all<CompetitionRow[]>('SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC', viewer.tenantId)
 
-        // 重複を取り除き、最新のスコアのみを保持
-        const uniqueCompetitionScores = {};
-        for (const cs of competitionScores) {
-          // 最も大きいrow_numを持つスコアのみを保持
-          const existing = uniqueCompetitionScores[cs.competition_id];
-          if (!existing || existing.row_num < cs.row_num) {
-            uniqueCompetitionScores[cs.competition_id] = cs;
+        const pss: (PlayerScoreRow & CompetitionTitle)[] = []
+
+        // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
+        const unlock = await flockByTenantID(viewer.tenantId)
+        try {
+          for (const comp of competitions) {
+            const ps = await tenantDB.get<PlayerScoreRow>(
+              // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
+              'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1',
+              viewer.tenantId,
+              comp.id,
+              p.id
+            )
+            if (!ps) {
+              // 行がない = スコアが記録されてない
+              continue
+            }
+
+            pss.push({...ps, title: comp.title})
           }
+
+          for (const ps of pss) {
+            psds.push({
+              competition_title: ps.title,
+              score: ps.score,
+            })
+          }
+        } finally {
+          unlock()
         }
-
-        // psdsに変換
-        for (const compId in uniqueCompetitionScores) {
-          const cs = uniqueCompetitionScores[compId];
-          psds.push({
-            competition_title: cs.competition_title,
-            score: cs.score,
-          });
-        }
-
-        // const competitions = await tenantDB.all<CompetitionRow[]>('SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC', viewer.tenantId)
-
-        // const pss: PlayerScoreRow[] = []
-
-        // // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-        // const unlock = await flockByTenantID(viewer.tenantId)
-        // try {
-        //   for (const comp of competitions) {
-        //     const ps = await tenantDB.get<PlayerScoreRow>(
-        //       // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-        //       'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1',
-        //       viewer.tenantId,
-        //       comp.id,
-        //       p.id
-        //     )
-        //     if (!ps) {
-        //       // 行がない = スコアが記録されてない
-        //       continue
-        //     }
-
-        //     pss.push(ps)
-        //   }
-
-        //   for (const ps of pss) {
-        //     const comp = await retrieveCompetition(tenantDB, ps.competition_id)
-        //     if (!comp) {
-        //       throw new Error('error retrieveCompetition')
-        //     }
-        //     psds.push({
-        //       competition_title: comp?.title,
-        //       score: ps.score,
-        //     })
-        //   }
-        // } finally {
-        //   unlock()
-        // }
       } finally {
         tenantDB.close()
       }
@@ -1391,7 +1373,7 @@ app.get(
         )
 
         const { rank_after: rankAfterStr } = req.query
-        let rankAfter = 0
+        let rankAfter: number
         if (rankAfterStr) {
           rankAfter = parseInt(rankAfterStr.toString(), 10)
         }
