@@ -22,10 +22,11 @@ def delete_player_score_row(id: int):
 
     last_score_dict = {}
     for player_score in player_scores:
+        competition_id = player_score["competition_id"]
         player_id = player_score["player_id"]
-        if player_id in last_score_dict:
+        if last_score_dict[(competition_id, player_id)] is not None:
             continue
-        last_score_dict[player_id] = player_score
+        last_score_dict[(competition_id, player_id)] = player_score
 
     tenant_db.execute("""
 CREATE TABLE player_score2 (
