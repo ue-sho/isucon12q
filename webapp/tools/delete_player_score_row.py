@@ -24,7 +24,7 @@ def delete_player_score_row(id: int):
     for player_score in player_scores:
         competition_id = player_score["competition_id"]
         player_id = player_score["player_id"]
-        if last_score_dict[(competition_id, player_id)] is not None:
+        if last_score_dict.get((competition_id, player_id)):
             continue
         last_score_dict[(competition_id, player_id)] = player_score
 
