@@ -29,7 +29,7 @@ def delete_player_score_row(id: int):
         last_score_dict[player_id] = player_score
 
     tenant_db.execute("""
-CREATE TABLE player_score (
+CREATE TABLE player_score2 (
     id VARCHAR(255) NOT NULL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     player_id VARCHAR(255) NOT NULL,
@@ -53,6 +53,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 
 def main():
     for i in range(1, 101):
+        print(i)
         delete_player_score_row(i)
 
 
