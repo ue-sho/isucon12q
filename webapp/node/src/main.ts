@@ -1070,7 +1070,7 @@ app.post(
           for (const row of playerScoreRows) {
             await adminDB.execute(
               'INSERT INTO player_score (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at) VALUES ($id, $tenant_id, $player_id, $competition_id, $score, $row_num, $created_at, $updated_at)',
-              [{
+              {
                 $id: row.id,
                 $tenant_id: row.tenant_id,
                 $player_id: row.player_id,
@@ -1079,7 +1079,7 @@ app.post(
                 $row_num: row.row_num,
                 $created_at: row.created_at,
                 $updated_at: row.updated_at,
-              }]
+              }
             )
           }
         } finally {
