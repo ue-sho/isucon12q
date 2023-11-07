@@ -425,7 +425,7 @@ async function authorizePlayer(id: string): Promise<Error | undefined> {
 // 大会を取得する
 async function retrieveCompetition(id: string): Promise<CompetitionRow | undefined> {
   try {
-    const [[competitionRow]] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition WHERE id = ?', id)
+    const [[competitionRow]] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition WHERE id = ?', [id])
     return competitionRow
   } catch (error) {
     throw new Error(`error Select competition: id=${id}, ${error}`)
@@ -714,7 +714,7 @@ app.get(
       try {
         const [pls] = await adminDB.query<(PlayerRow & RowDataPacket)[]>(
           'SELECT * FROM player WHERE tenant_id = ? ORDER BY created_at DESC',
-          viewer.tenantId
+          [viewer.tenantId]
         )
 
         pds.push(
@@ -1124,7 +1124,7 @@ app.get(
       const reports: BillingReport[] = []
       const [competitions] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>(
         'SELECT * FROM competition WHERE tenant_id=? ORDER BY created_at DESC',
-        viewer.tenantId
+        [viewer.tenantId]
       )
 
       for (const comp of competitions) {
