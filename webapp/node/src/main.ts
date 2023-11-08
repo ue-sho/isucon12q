@@ -1067,21 +1067,19 @@ app.post(
             competitionId]
           )
 
-          for (const row of playerScoreRows) {
-            await adminDB.execute(
-              'INSERT INTO player_score (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-              [
-                row.id,
-                row.tenant_id,
-                row.player_id,
-                row.competition_id,
-                row.score,
-                row.row_num,
-                row.created_at,
-                row.updated_at,
-              ]
-            )
-          }
+          // バルクインサート用のプレースホルダーと値の配列を生成します
+          const placeholders = playerScoreRows.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+          const values = playerScoreRows.reduce<(number | string)[]>((acc, row) => {
+            return acc.concat([row.id, row.tenant_id, row.player_id, row.competition_id, row.score, row.row_num, row.created_at, row.updated_at]);
+          }, []);
+
+          // バルクインサートを実行します
+          const query = `
+            INSERT INTO player_score (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at)
+            VALUES ${placeholders}
+          `;
+
+          await adminDB.execute(query, values);
         } finally {
           unlock()
         }
