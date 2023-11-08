@@ -12,7 +12,7 @@ CREATE TABLE `player` (
     `updated_at` bigint NOT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_player_tenant_id` (`tenant_id`)
-)
+);
 
 CREATE TABLE `player_score` (
     `id` varchar(255) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE `player_score` (
     `updated_at` bigint NOT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_player_score_all` (`tenant_id`,`competition_id`,`player_id`)
-)
+);
 
 CREATE TABLE `competition` (
     `id` varchar(255) NOT NULL,
@@ -34,8 +34,9 @@ CREATE TABLE `competition` (
     `finished_at` bigint DEFAULT NULL,
     `created_at` bigint NOT NULL,
     `updated_at` bigint NOT NULL,
+    PRIMARY KEY (`id`),
     KEY `idx_competition_tenant_id` (`tenant_id`)
-)
+);
 
 INSERT INTO player SELECT * FROM player_init;
 INSERT INTO player_score SELECT * FROM player_score_init;
