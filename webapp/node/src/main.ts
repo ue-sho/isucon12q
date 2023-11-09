@@ -406,6 +406,7 @@ async function retrievePlayer(id: string): Promise<PlayerRow | undefined> {
 
   try {
     const [[playerRow]] = await adminDB.query<(PlayerRow & RowDataPacket)[]>('SELECT * FROM player WHERE id = ?', [id])
+    playerCache.set(id, playerRow)
     return playerRow
   } catch (error) {
     throw new Error(`error Select player: id=${id}, ${error}`)
@@ -437,6 +438,7 @@ async function retrieveCompetition(id: string): Promise<CompetitionRow | undefin
 
   try {
     const [[competitionRow]] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition WHERE id = ?', [id])
+    competitionCache.set(id, competitionRow)
     return competitionRow
   } catch (error) {
     throw new Error(`error Select competition: id=${id}, ${error}`)
@@ -678,6 +680,9 @@ app.get(
         )
 
         for (const comp of competitions) {
+          if (!competitionCache.has(comp.id)) {
+            competitionCache.set(comp.id, comp)
+          }
           const report = await billingReportByCompetition(tenant.id, comp.id)
           tb.billing += report.billing_yen
         }
@@ -1156,6 +1161,9 @@ app.get(
       )
 
       for (const comp of competitions) {
+        if (!competitionCache.has(comp.id)) {
+          competitionCache.set(comp.id, comp)
+        }
         const report = await billingReportByCompetition(viewer.tenantId, comp.id)
         reports.push(report)
       }
@@ -1183,11 +1191,16 @@ async function competitionsHandler(req: Request, res: Response, viewer: Viewer) 
       [viewer.tenantId]
     )
 
-    const cds: CompetitionDetail[] = competitions.map((comp) => ({
-      id: comp.id,
-      title: comp.title,
-      is_finished: !!comp.finished_at,
-    }))
+    const cds: CompetitionDetail[] = competitions.map((comp) => {
+      if (!competitionCache.has(comp.id)) {
+        competitionCache.set(comp.id, comp)
+      }
+      return {
+        id: comp.id,
+        title: comp.title,
+        is_finished: !!comp.finished_at,
+      }
+    })
 
     const data: CompetitionsResult = {
       competitions: cds,
