@@ -298,6 +298,9 @@ app.set('etag', false)
 
 const upload = multer()
 
+const playerCache = new Map<string, PlayerRow>()
+const competitionCache = new Map<string, CompetitionRow>()
+
 // see: https://expressjs.com/en/advanced/best-practice-performance.html#handle-exceptions-properly
 const wrap =
   (fn: (req: Request, res: Response, next: NextFunction) => Promise<Response | void>): RequestHandler =>
@@ -397,6 +400,10 @@ async function retrieveTenantRowFromHeader(req: Request): Promise<TenantRow | un
 
 // 参加者を取得する
 async function retrievePlayer(id: string): Promise<PlayerRow | undefined> {
+  if (playerCache.has(id)) {
+    return playerCache.get(id)
+  }
+
   try {
     const [[playerRow]] = await adminDB.query<(PlayerRow & RowDataPacket)[]>('SELECT * FROM player WHERE id = ?', [id])
     return playerRow
@@ -424,6 +431,10 @@ async function authorizePlayer(id: string): Promise<Error | undefined> {
 
 // 大会を取得する
 async function retrieveCompetition(id: string): Promise<CompetitionRow | undefined> {
+  if (competitionCache.has(id)) {
+    return competitionCache.get(id)
+  }
+
   try {
     const [[competitionRow]] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition WHERE id = ?', [id])
     return competitionRow
@@ -766,6 +777,14 @@ app.post(
             now,
             now]
           )
+          playerCache.set(id, {
+            id: id,
+            tenant_id: viewer.tenantId,
+            display_name: displayName,
+            is_disqualified: 0,
+            created_at: now,
+            updated_at: now
+          })
         } catch (error) {
           throw new Error(
             `error Insert player at tenantDB: tenantId=${viewer.tenantId} id=${id}, displayName=${displayName}, isDisqualified=false, createdAt=${now}, updatedAt=${now}, ${error}`
@@ -822,6 +841,10 @@ app.post(
       try {
         try {
           await adminDB.execute('UPDATE player SET is_disqualified = ?, updated_at = ? WHERE id = ?', [true, now, playerId])
+          const playerRow = playerCache.get(playerId);
+          if (playerRow) {
+            playerCache.set(playerId, { ...playerRow, is_disqualified: 1, updated_at: now })
+          }
         } catch (error) {
           throw new Error(`error Update player: isDisqualified=true, updatedAt=${now}, id=${playerId}, ${error}`)
         }
@@ -886,6 +909,14 @@ app.post(
           now,
           now]
         )
+        competitionCache.set(id, {
+          tenant_id: viewer.tenantId,
+          id: id,
+          title: title,
+          finished_at: null,
+          created_at: now,
+          updated_at: now
+        })
       } catch (error) {
         throw new Error(
           `error Insert competition: id=${id}, tenant_id=${viewer.tenantId}, title=${title}, finishedAt=null, createdAt=${now}, updatedAt=${now}, ${error}`
@@ -942,6 +973,7 @@ app.post(
         now,
         competitionId]
       )
+      competitionCache.set(competitionId, { ...competition, finished_at: now, updated_at: now })
 
       res.status(200).json({
         status: true,
