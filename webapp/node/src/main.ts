@@ -568,8 +568,6 @@ async function billingReportByCompetition(
     billingMap[vh.player_id] = 'visitor'
   }
 
-  // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-  const unlock = await flockByTenantID(tenantId)
   try {
     // スコアを登録した参加者のIDを取得する
     const [scoredPlayerIds] = await adminDB.query<({ player_id: string } & RowDataPacket)[]>(
@@ -610,8 +608,6 @@ async function billingReportByCompetition(
     }
   } catch (error) {
     throw new Error(`error Select count player_score: tenantId=${tenantId}, competitionId=${comp.id}, ${error}`)
-  } finally {
-    unlock()
   }
 }
 
@@ -1013,7 +1009,7 @@ app.post(
         }
 
         // DELETEしたタイミングで参照が来ると空っぽのランキングになるのでロックする
-        const unlock = await flockByTenantID(viewer.tenantId)
+        const connection = await adminDB.getConnection()
         const playerScores = {}
         try {
           for (const record of records) {
@@ -1061,7 +1057,8 @@ app.post(
             })
           }
 
-          await adminDB.execute(
+          await connection.beginTransaction()
+          await connection.execute(
             'DELETE FROM player_score WHERE tenant_id = ? AND competition_id = ?',
             [viewer.tenantId,
             competitionId]
@@ -1079,9 +1076,10 @@ app.post(
             VALUES ${placeholders}
           `;
 
-          await adminDB.execute(query, values);
+          await connection.execute(query, values);
+          await connection.commit();
         } finally {
-          unlock()
+          connection.release()
         }
       } catch (error: any) {
         if (error.status) {
@@ -1233,33 +1231,27 @@ app.get(
 
       const pss: (PlayerScoreRow & CompetitionTitle)[] = []
 
-      // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-      const unlock = await flockByTenantID(viewer.tenantId)
-      try {
-        for (const comp of competitions) {
-          const [[ps]] = await adminDB.query<(PlayerScoreRow & RowDataPacket)[]>(
-            // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-            'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1',
-            [viewer.tenantId,
-            comp.id,
-            p.id]
-          )
-          if (!ps) {
-            // 行がない = スコアが記録されてない
-            continue
-          }
-
-          pss.push({...ps, title: comp.title})
+      for (const comp of competitions) {
+        const [[ps]] = await adminDB.query<(PlayerScoreRow & RowDataPacket)[]>(
+          // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
+          'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? DESC LIMIT 1',
+          [viewer.tenantId,
+          comp.id,
+          p.id]
+        )
+        if (!ps) {
+          // 行がない = スコアが記録されてない
+          continue
         }
 
-        for (const ps of pss) {
-          psds.push({
-            competition_title: ps.title,
-            score: ps.score,
-          })
-        }
-      } finally {
-        unlock()
+        pss.push({...ps, title: comp.title})
+      }
+
+      for (const ps of pss) {
+        psds.push({
+          competition_title: ps.title,
+          score: ps.score,
+        })
       }
 
       const data: PlayerResult = {
@@ -1329,53 +1321,48 @@ app.get(
       }
 
       // player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
-      const unlock = await flockByTenantID(tenant.id)
-      try {
-        const [pss] = await adminDB.query<((PlayerScoreRow & DisplayName) & RowDataPacket)[]>(
-          'SELECT player_score.*, player.display_name FROM player_score JOIN player ON player.id = player_score.player_id WHERE player_score.tenant_id = ? AND competition_id = ? ORDER BY row_num DESC',
-          [tenant.id,
-          competition.id]
-        )
+      const [pss] = await adminDB.query<((PlayerScoreRow & DisplayName) & RowDataPacket)[]>(
+        'SELECT player_score.*, player.display_name FROM player_score JOIN player ON player.id = player_score.player_id WHERE player_score.tenant_id = ? AND competition_id = ? ORDER BY row_num DESC',
+        [tenant.id,
+        competition.id]
+      )
 
-        const scoredPlayerSet: { [player_id: string]: number } = {}
-        const tmpRanks: (CompetitionRank & WithRowNum)[] = []
-        for (const ps of pss) {
-          // player_scoreが同一player_id内ではrow_numの降順でソートされているので
-          // 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
-          if (scoredPlayerSet[ps.player_id]) {
-            continue
-          }
-          scoredPlayerSet[ps.player_id] = 1
-
-          tmpRanks.push({
-            rank: 0,
-            score: ps.score,
-            player_id: ps.player_id,
-            player_display_name: ps.display_name,
-            row_num: ps.row_num,
-          })
+      const scoredPlayerSet: { [player_id: string]: number } = {}
+      const tmpRanks: (CompetitionRank & WithRowNum)[] = []
+      for (const ps of pss) {
+        // player_scoreが同一player_id内ではrow_numの降順でソートされているので
+        // 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
+        if (scoredPlayerSet[ps.player_id]) {
+          continue
         }
+        scoredPlayerSet[ps.player_id] = 1
 
-        tmpRanks.sort((a, b) => {
-          if (a.score === b.score) {
-            return a.row_num < b.row_num ? -1 : 1
-          }
-          return a.score > b.score ? -1 : 1
+        tmpRanks.push({
+          rank: 0,
+          score: ps.score,
+          player_id: ps.player_id,
+          player_display_name: ps.display_name,
+          row_num: ps.row_num,
         })
-
-        tmpRanks.forEach((rank, index) => {
-          if (index < rankAfter) return
-          if (ranks.length >= 100) return
-          ranks.push({
-            rank: index + 1,
-            score: rank.score,
-            player_id: rank.player_id,
-            player_display_name: rank.player_display_name,
-          })
-        })
-      } finally {
-        unlock()
       }
+
+      tmpRanks.sort((a, b) => {
+        if (a.score === b.score) {
+          return a.row_num < b.row_num ? -1 : 1
+        }
+        return a.score > b.score ? -1 : 1
+      })
+
+      tmpRanks.forEach((rank, index) => {
+        if (index < rankAfter) return
+        if (ranks.length >= 100) return
+        ranks.push({
+          rank: index + 1,
+          score: rank.score,
+          player_id: rank.player_id,
+          player_display_name: rank.player_display_name,
+        })
+      })
 
       const data: CompetitionRankingResult = {
         competition: cd,
