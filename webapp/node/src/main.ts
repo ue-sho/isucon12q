@@ -773,6 +773,14 @@ app.post(
         const now = Math.floor(new Date().getTime() / 1000)
 
         try {
+          playerCache.set(id, {
+            id: id,
+            tenant_id: viewer.tenantId,
+            display_name: displayName,
+            is_disqualified: 0,
+            created_at: now,
+            updated_at: now
+          })
           await adminDB.execute<OkPacket>(
             'INSERT INTO player (id, tenant_id, display_name, is_disqualified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
             [id,
@@ -782,14 +790,6 @@ app.post(
             now,
             now]
           )
-          playerCache.set(id, {
-            id: id,
-            tenant_id: viewer.tenantId,
-            display_name: displayName,
-            is_disqualified: 0,
-            created_at: now,
-            updated_at: now
-          })
         } catch (error) {
           throw new Error(
             `error Insert player at tenantDB: tenantId=${viewer.tenantId} id=${id}, displayName=${displayName}, isDisqualified=false, createdAt=${now}, updatedAt=${now}, ${error}`
@@ -845,11 +845,11 @@ app.post(
       let pd: PlayerDetail
       try {
         try {
-          await adminDB.execute('UPDATE player SET is_disqualified = ?, updated_at = ? WHERE id = ?', [true, now, playerId])
           const playerRow = playerCache.get(playerId);
           if (playerRow) {
             playerCache.set(playerId, { ...playerRow, is_disqualified: 1, updated_at: now })
           }
+          await adminDB.execute('UPDATE player SET is_disqualified = ?, updated_at = ? WHERE id = ?', [true, now, playerId])
         } catch (error) {
           throw new Error(`error Update player: isDisqualified=true, updatedAt=${now}, id=${playerId}, ${error}`)
         }
@@ -905,6 +905,14 @@ app.post(
       const now = Math.floor(new Date().getTime() / 1000)
       const id = await dispenseID()
       try {
+        competitionCache.set(id, {
+          tenant_id: viewer.tenantId,
+          id: id,
+          title: title,
+          finished_at: null,
+          created_at: now,
+          updated_at: now
+        })
         await adminDB.execute(
           'INSERT INTO competition (id, tenant_id, title, finished_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
           [id,
@@ -914,14 +922,6 @@ app.post(
           now,
           now]
         )
-        competitionCache.set(id, {
-          tenant_id: viewer.tenantId,
-          id: id,
-          title: title,
-          finished_at: null,
-          created_at: now,
-          updated_at: now
-        })
       } catch (error) {
         throw new Error(
           `error Insert competition: id=${id}, tenant_id=${viewer.tenantId}, title=${title}, finishedAt=null, createdAt=${now}, updatedAt=${now}, ${error}`
