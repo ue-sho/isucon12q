@@ -1234,7 +1234,7 @@ app.get(
       for (const comp of competitions) {
         const [[ps]] = await adminDB.query<(PlayerScoreRow & RowDataPacket)[]>(
           // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-          'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? DESC LIMIT 1',
+          'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? LIMIT 1',
           [viewer.tenantId,
           comp.id,
           p.id]
