@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS player;
 DROP TABLE IF EXISTS player_score;
 DROP TABLE IF EXISTS competition;
+DROP TABLE IF EXISTS billing_report;
 
 CREATE TABLE `player` (
     `id` varchar(255) NOT NULL,
@@ -38,6 +39,19 @@ CREATE TABLE `competition` (
     KEY `idx_competition_tenant_id` (`tenant_id`)
 );
 
+CREATE TABLE `billing_report` (
+  `tenant_id` bigint unsigned NOT NULL,
+  `competition_id` varchar(255) NOT NULL,
+  `competition_title` varchar(255) NOT NULL,
+  `player_count` bigint NOT NULL,
+  `visitor_count` bigint NOT NULL,
+  `billing_player_yen` bigint NOT NULL,
+  `billing_visitor_yen` bigint NOT NULL,
+  `billing_yen` bigint NOT NULL,
+  PRIMARY KEY (`tenant_id`,`competition_id`)
+)
+
 INSERT INTO player SELECT * FROM player_init;
 INSERT INTO player_score SELECT * FROM player_score_init;
 INSERT INTO competition SELECT * FROM competition_init;
+INSERT INTO billing_report SELECT * FROM billing_report_init;
