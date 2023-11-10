@@ -1527,15 +1527,16 @@ app.post(
 
       const [competitions] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition')
       const [tenants] = await adminDB.query<(TenantRow & RowDataPacket)[]>('SELECT * FROM tenant')
-      competitions.forEach((comp) => {
-        tenants.forEach(async (tenant) => {
+
+      for (const comp of competitions) {
+        for (const tenant of tenants) {
           const report = await billingReportByCompetition(tenant.id, comp.id)
           await adminDB.execute(
             'INSERT INTO billing_report (tenant_id, competition_id, player_count, visitor_count, billing_player_yen, billing_visitor_yen, billing_yen) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [tenant.id, report.competition_id, report.player_count, report.visitor_count, report.billing_player_yen, report.billing_visitor_yen, report.billing_yen]
           )
-        })
-      })
+        }
+      }
 
       const data: InitializeResult = {
         lang: 'node',
