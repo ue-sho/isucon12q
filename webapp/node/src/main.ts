@@ -1272,7 +1272,7 @@ app.get(
         is_disqualified: !!p.is_disqualified,
       }
 
-      const [pss] = await adminDB.query<((PlayerScoreRow & CompetitionTitle) & RowDataPacket)[]>('SELECT player_score.*, competition.title FROM player_score JOIN competition ON competition.id = player_score.competition_id WHERE player_score.tenant_id = ? AND competition_id = ? AND player_id = ? LIMIT 1', [viewer.tenantId, pd.id])
+      const [pss] = await adminDB.query<((PlayerScoreRow & CompetitionTitle) & RowDataPacket)[]>('SELECT player_score.*, competition.title FROM player_score JOIN competition ON competition.id = player_score.competition_id WHERE player_score.tenant_id = ? AND competition_id = ? AND player_id = ?', [viewer.tenantId, pd.id])
       for (const ps of pss) {
         psds.push({
           competition_title: ps.title,
