@@ -49,7 +49,7 @@ CREATE TABLE `billing_report` (
   `billing_visitor_yen` bigint NOT NULL,
   `billing_yen` bigint NOT NULL,
   PRIMARY KEY (`tenant_id`,`competition_id`)
-)
+);
 
 INSERT INTO player SELECT * FROM player_init;
 INSERT INTO player_score SELECT * FROM player_score_init;
