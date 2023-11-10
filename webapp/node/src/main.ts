@@ -1272,26 +1272,7 @@ app.get(
         is_disqualified: !!p.is_disqualified,
       }
 
-      const [competitions] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition WHERE tenant_id = ? ORDER BY created_at ASC', [viewer.tenantId])
-
-      const pss: (PlayerScoreRow & CompetitionTitle)[] = []
-
-      for (const comp of competitions) {
-        const [[ps]] = await adminDB.query<(PlayerScoreRow & RowDataPacket)[]>(
-          // 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-          'SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? LIMIT 1',
-          [viewer.tenantId,
-          comp.id,
-          p.id]
-        )
-        if (!ps) {
-          // 行がない = スコアが記録されてない
-          continue
-        }
-
-        pss.push({...ps, title: comp.title})
-      }
-
+      const pss = await adminDB.query<((PlayerScoreRow & CompetitionTitle) & RowDataPacket)[]>('SELECT player_score.*, competition.title FROM player_score JOIN competition ON competition.id = player_score.competition_id WHERE player_score.tenant_id = ? AND competition_id = ? AND player_id = ? LIMIT 1', [viewer.tenantId, pd.id])
       for (const ps of pss) {
         psds.push({
           competition_title: ps.title,
