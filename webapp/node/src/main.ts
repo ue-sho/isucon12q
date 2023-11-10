@@ -561,6 +561,11 @@ async function billingReportByCompetition(
   tenantId: number,
   competitionId: string
 ): Promise<BillingReport> {
+  const [[billingReport]] = await adminDB.query<(BillingReport & RowDataPacket)[]>(`SELECT * FROM billing_report WHERE tenant_id = ? AND competition_id = ?`, [tenantId, competitionId]);
+  if (billingReport) {
+    return billingReport
+  }
+
   const comp = await retrieveCompetition(competitionId)
   if (!comp) {
     throw Error('error retrieveCompetition on billingReportByCompetition')
@@ -972,13 +977,21 @@ app.post(
         throw new ErrorWithStatus(404, 'competition not found')
       }
 
+      competitionCache.set(competitionId, { ...competition, finished_at: now, updated_at: now })
       await adminDB.execute(
         'UPDATE competition SET finished_at = ?, updated_at = ? WHERE id = ?',
         [now,
         now,
         competitionId]
       )
-      competitionCache.set(competitionId, { ...competition, finished_at: now, updated_at: now })
+
+      const billingReport = billingReportByCompetition(viewer.tenantId, competitionId)
+      billingReport.then((report) => {
+        adminDB.execute(
+          'INSERT INTO billing_report (tenant_id, competition_id, player_count, visitor_count, billing_player_yen, billing_visitor_yen, billing_yen) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [viewer.tenantId, report.competition_id, report.player_count, report.visitor_count, report.billing_player_yen, report.billing_visitor_yen, report.billing_yen]
+        )
+      })
 
       res.status(200).json({
         status: true,
@@ -1511,6 +1524,18 @@ app.post(
   wrap(async (req: Request, res: Response, _next: NextFunction) => {
     try {
       await exec(initializeScript)
+
+      const [competitions] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition')
+      const [tenants] = await adminDB.query<(TenantRow & RowDataPacket)[]>('SELECT * FROM tenant')
+      competitions.forEach((comp) => {
+        tenants.forEach(async (tenant) => {
+          const report = await billingReportByCompetition(tenant.id, comp.id)
+          await adminDB.execute(
+            'INSERT INTO billing_report (tenant_id, competition_id, player_count, visitor_count, billing_player_yen, billing_visitor_yen, billing_yen) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [tenant.id, report.competition_id, report.player_count, report.visitor_count, report.billing_player_yen, report.billing_visitor_yen, report.billing_yen]
+          )
+        })
+      })
 
       const data: InitializeResult = {
         lang: 'node',
