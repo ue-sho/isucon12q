@@ -25,7 +25,8 @@ CREATE TABLE `player_score` (
     `created_at` bigint NOT NULL,
     `updated_at` bigint NOT NULL,
     PRIMARY KEY (`id`),
-    KEY `idx_player_score_all` (`tenant_id`,`competition_id`,`player_id`)
+    KEY `idx_player_score_tenant_competition` (`tenant_id`,`competition_id`),
+    KEY `idx_player_score_tenant_player` (`tenant_id`,`player_id`)
 );
 
 CREATE TABLE `competition` (
