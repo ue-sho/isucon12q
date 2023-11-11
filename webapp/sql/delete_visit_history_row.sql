@@ -6,7 +6,7 @@ CREATE TABLE `visit_history_tmp` (
   `updated_at` bigint NOT NULL,
   KEY `tenant_id_idx` (`tenant_id`),
   KEY `idx_all_cover` (`tenant_id`,`competition_id`,`player_id`,`created_at`)
-)
+);
 
 INSERT INTO visit_history_tmp SELECT * FROM visit_history;
 
