@@ -1525,6 +1525,9 @@ app.post(
     try {
       await exec(initializeScript)
 
+      playerCache.clear()
+      competitionCache.clear()
+
       // const [competitions] = await adminDB.query<(CompetitionRow & RowDataPacket)[]>('SELECT * FROM competition')
       // const [tenants] = await adminDB.query<(TenantRow & RowDataPacket)[]>('SELECT * FROM tenant')
 
