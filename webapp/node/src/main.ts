@@ -850,11 +850,11 @@ app.post(
       let pd: PlayerDetail
       try {
         try {
+          await adminDB.execute('UPDATE player SET is_disqualified = ?, updated_at = ? WHERE id = ?', [true, now, playerId])
           const playerRow = playerCache.get(playerId);
           if (playerRow) {
             playerCache.set(playerId, { ...playerRow, is_disqualified: 1, updated_at: now })
           }
-          await adminDB.execute('UPDATE player SET is_disqualified = ?, updated_at = ? WHERE id = ?', [true, now, playerId])
         } catch (error) {
           throw new Error(`error Update player: isDisqualified=true, updatedAt=${now}, id=${playerId}, ${error}`)
         }
