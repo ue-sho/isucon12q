@@ -1,0 +1,119 @@
+#
+# The MySQL database server configuration file.
+#
+# One can use all long options that the program supports.
+# Run program with --help to get a list of available options and with
+# --print-defaults to see which it would actually understand and use.
+#
+# For explanations see
+# http://dev.mysql.com/doc/mysql/en/server-system-variables.html
+
+# Here is entries for some specific programs
+# The following values assume you have at least 32M ram
+
+[mysqld]
+#
+# * Basic Settings
+#
+user		= mysql
+# pid-file	= /var/run/mysqld/mysqld.pid
+# socket	= /var/run/mysqld/mysqld.sock
+# port		= 3306
+# datadir	= /var/lib/mysql
+
+
+# If MySQL is running as a replication slave, this should be
+# changed. Ref https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_tmpdir
+# tmpdir		= /tmp
+#
+# Instead of skip-networking the default is now to listen only on
+# localhost which is more compatible and is not less secure.
+bind-address		= 127.0.0.1
+mysqlx-bind-address	= 127.0.0.1
+#
+# * Fine Tuning
+#
+# key_buffer_size		= 16M
+# max_allowed_packet	= 64M
+# thread_stack		= 256K
+
+# thread_cache_size       = -1
+
+# This replaces the startup script and checks MyISAM tables if needed
+# the first time they are touched
+myisam-recover-options  = BACKUP
+
+# max_connections        = 151
+
+# table_open_cache       = 4000
+
+#
+# * Logging and Replication
+#
+# Both location gets rotated by the cronjob.
+#
+# Log all queries
+# Be aware that this log type is a performance killer.
+# general_log_file        = /var/log/mysql/query.log
+# general_log             = 1
+#
+# Error log - should be very few entries.
+#
+log_error = /var/log/mysql/error.log
+#
+# Here you can see queries with especially long duration
+slow_query_log      = 1
+# slow_query_log      = 0
+slow_query_log_file	= /var/log/mysql/slow.log
+long_query_time     = 0
+
+# log-queries-not-using-indexes
+#
+# The following can be used as easy to replay backup logs or for replication.
+# note: if you are setting up a replication slave, see README.Debian about
+#       other settings you may need to change.
+# server-id		= 1
+# log_bin			= /var/log/mysql/mysql-bin.log
+# binlog_expire_logs_seconds	= 2592000
+max_binlog_size   = 100M
+# binlog_do_db		= include_database_name
+# binlog_ignore_db	= include_database_name
+
+# バイナリログを無効化。レプリケーションやポイントインタイムリカバリが不要な場合に、ディスクI/Oのオーバーヘッドを削減するために使用します。
+disable-log-bin
+
+# InnoDBのダブルライト機能を無効化。ディスクの書き込みを高速化するためのものですが、クラッシュ時のデータ復旧が困難になるリスクがあります。
+innodb_doublewrite = 0
+
+# 同時にオープンできる接続の最大数を指定。
+max_connections=1000
+
+# InnoDBの主要なキャッシュ。データベースのデータとインデックスをメモリにキャッシュします。通常、利用可能なメモリの50%-80%を割り当てます。
+innodb_buffer_pool_size = 1GB
+
+# トランザクションの確定時のログの書き込み方法を設定。0は非同期で最も高速ですが、クラッシュ時に最後の1秒間のデータが失われるリスクがあります。
+innodb_flush_log_at_trx_commit = 0
+
+# InnoDBのデータとログの読み書き方法を指定。O_DIRECTはOSのバッファキャッシュをバイパスして、直接ディスクI/Oを行います。
+innodb_flush_method = O_DIRECT
+
+# テーブルごとに独立したInnoDBデータファイルを使用。大きなデータベースでの管理やディスク使用量の最適化に有用。
+innodb_file_per_table=ON
+
+# InnoDBの更新（redo）ログをメモリ内でバッファリングするサイズを設定。
+innodb_log_buffer_size = 16MB
+
+# 更新（redo）ログのディスク上のファイルサイズを設定。大きなトランザクションを扱う場合には増やすことが推奨される。
+innodb_log_file_size=250MB
+
+# SQLのORDER BYやGROUP BY操作時に使用するバッファのサイズを設定。
+innodb_sort_buffer_size = 4MB
+
+# テーブルの行を順不同で読み取る際のバッファサイズを設定。
+read_rnd_buffer_size = 2MB
+
+# MyISAMテーブルのキー情報をキャッシュするサイズを設定。InnoDBを主に使用する場合でも、内部的なテーブルで使用されることがある。
+key_buffer_size = 256MB
+
+# InnoDBのログライタースレッドの数を設定。通常はCPUのコア数に応じて調整しますが、ここでは無効にしています。
+innodb_log_writer_threads = off
